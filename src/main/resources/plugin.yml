@@ -1,0 +1,13 @@
+name: DataTransfer
+version: 1.0.0
+main: com.ratger.datatransfer.DataTransfer
+api-version: '1.21'
+authors: [ ratger ]
+description: Transfers required data to players with the required permissions
+website: https://minetoday.org
+depend: [ packetevents ]
+
+permissions:
+  datatransfer.infotags:
+    description: Data for InfoTags mod
+    default: op
