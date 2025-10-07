@@ -4,6 +4,7 @@ import io.netty.buffer.ByteBuf
 import java.nio.charset.StandardCharsets
 
 object DataUtils {
+    // Чтение строки из пакета
     fun readString(byteBuf: ByteBuf): String {
         val length = readVarInt(byteBuf)
         if (length < 0 || length > 32767) throw IllegalArgumentException("Invalid string length: $length")
@@ -13,13 +14,27 @@ object DataUtils {
         return String(bytes, StandardCharsets.UTF_8)
     }
 
-    // Прямой функции для записи строки нет. Используем кастомную
-    fun writeString(byteBuf: ByteBuf, value: String) {
-        val bytes = value.toByteArray(StandardCharsets.UTF_8)
+    // Запись длины содержимого + самих данных
+    fun writeString(byteBuf: ByteBuf, content: String) {
+        val bytes = content.toByteArray(StandardCharsets.UTF_8)
         writeVarInt(byteBuf, bytes.size)
         byteBuf.writeBytes(bytes)
     }
 
+    // Кастомная функция записи числа
+    fun writeVarInt(buf: ByteBuf, value: Int) {
+        var temp = value
+        while (true) {
+            if ((temp and 0x7F.inv()) == 0) {
+                buf.writeByte(temp)
+                return
+            }
+            buf.writeByte((temp and 0x7F) or 0x80)
+            temp = temp ushr 7
+        }
+    }
+
+    // Логика просчёта длины
     fun readVarInt(byteBuf: ByteBuf): Int {
         var value = 0
         var position = 0
@@ -32,17 +47,5 @@ object DataUtils {
             if (position >= 32) throw RuntimeException("VarInt is too big")
         }
         return value
-    }
-
-    fun writeVarInt(byteBuf: ByteBuf, value: Int) {
-        var v = value
-        while (true) {
-            if (v and 0x7F.inv() == 0) {
-                byteBuf.writeByte(v)
-                return
-            }
-            byteBuf.writeByte((v and 0x7F) or 0x80)
-            v = v ushr 7
-        }
     }
 }

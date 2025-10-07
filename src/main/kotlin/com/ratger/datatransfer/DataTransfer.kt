@@ -6,19 +6,19 @@ import org.bukkit.plugin.java.JavaPlugin
 
 class DataTransfer : JavaPlugin(), Listener {
 
-    // Игроки с нужным пермишеном + модом
-    val trackedPlayers = mutableSetOf<org.bukkit.entity.Player>()
+    private val sqliteManager = SQLiteManager(this)
+    private val networkHandler = NetworkHandler(this, sqliteManager)
 
     override fun onEnable() {
-        server.pluginManager.registerEvents(ChannelListener(this), this)
+        server.pluginManager.registerEvents(EventListener(networkHandler, sqliteManager), this)
+        server.messenger.registerIncomingPluginChannel(this, "datatransfer:main") { _, _, _ -> }
+        server.messenger.registerOutgoingPluginChannel(this, "datatransfer:main")
 
-        PacketEvents.getAPI().load()
-        PacketEvents.getAPI().init()
-        PacketEvents.getAPI().eventManager.registerListener(PacketHandler(this))
+        PacketEvents.getAPI().eventManager.registerListener(networkHandler)
+    }
 
-        // Каналы для обмена данными
-        server.messenger.registerIncomingPluginChannel(this, "datatransfer:handshake") { _, _, _ -> }
-        server.messenger.registerIncomingPluginChannel(this, "datatransfer:playerinfo_request") { _, _, _ -> }
-        server.messenger.registerOutgoingPluginChannel(this, "datatransfer:playerinfo")
+    override fun onDisable() {
+        sqliteManager.close()
+        PacketEvents.getAPI().eventManager.unregisterListeners(networkHandler)
     }
 }
